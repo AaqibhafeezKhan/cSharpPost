@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -86,7 +85,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			CharacterCount: len(text),
 		}
 		nextID++
-		// Insert at the beginning
 		posts = append([]Post{post}, posts...)
 
 		w.WriteHeader(http.StatusCreated)
