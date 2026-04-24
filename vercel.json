@@ -1,21 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "CSharpPost.API/CSharpPost.API.csproj",
-      "use": "@vercel/dotnet",
-      "config": {
-        "framework": "net8.0"
-      }
-    },
-    {
-      "src": "CSharpPost.Frontend/CSharpPost.Frontend.csproj",
-      "use": "@vercel/dotnet",
-      "config": {
-        "framework": "net9.0"
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
