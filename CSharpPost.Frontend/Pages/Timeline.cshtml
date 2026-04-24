@@ -1,0 +1,107 @@
+﻿@page
+@model TimelineModel
+
+<h1>CSharpPost Timeline</h1>
+
+<form method="get" id="filters">
+    <input type="text" name="search" placeholder="Search posts..." value="@Model.Search" />
+    <label for="startDate">Start Date:</label>
+    <input type="date" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+    <label for="endDate">End Date:</label>
+    <input type="date" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+    <button type="submit">Apply Filters</button>
+</form>
+
+<div id="timeline">
+    @if (Model.Posts != null)
+    {
+        foreach (var post in Model.Posts)
+        {
+            <div class="post" id="post-@post.Id">
+                <p>@post.Text</p>
+                <img src="@post.ImagePath" alt="Post Image" />
+                <p>@post.CreatedAt.ToString("g")</p>
+
+                <button onclick="editPost(@post.Id)">Edit</button>
+                <button onclick="deletePost(@post.Id)">Delete</button>
+            </div>
+        }
+    }
+    else
+    {
+        <p>Loading timeline...</p>
+    }
+</div>
+
+<div id="pagination">
+    @if (Model.CurrentPage > 1)
+    {
+        <a href="/Timeline?page=@(Model.CurrentPage - 1)&search=@Model.Search&startDate=@Model.StartDate&endDate=@Model.EndDate">Previous</a>
+    }
+
+    @if (Model.CurrentPage < Model.TotalPages)
+    {
+        <a href="/Timeline?page=@(Model.CurrentPage + 1)&search=@Model.Search&startDate=@Model.StartDate&endDate=@Model.EndDate">Next</a>
+    }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("https://localhost:5001/timelineHub")
+        .build();
+
+    connection.on("ReceiveNewPost", (postText, imagePath, createdAt) => {
+        const timeline = document.getElementById("timeline");
+
+        const postDiv = document.createElement("div");
+        postDiv.className = "post new";
+        postDiv.innerHTML = `
+            <p>${postText}</p>
+            <img src="${imagePath}" alt="Post Image" />
+            <p>${createdAt}</p>
+        `;
+        timeline.prepend(postDiv);
+
+        setTimeout(() => postDiv.classList.remove("new"), 5000);
+    });
+
+    connection.start().catch(err => console.error(err));
+
+    async function editPost(postId) {
+        const newText = prompt("Enter new text (max 140 characters):");
+        if (!newText || newText.length > 140) {
+            alert("Invalid text. Please try again.");
+            return;
+        }
+
+        const response = await fetch(`/api/posts/${postId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: newText })
+        });
+
+        if (response.ok) {
+            alert("Post updated successfully.");
+            location.reload();
+        } else {
+            alert("Failed to update the post.");
+        }
+    }
+
+    async function deletePost(postId) {
+        if (!confirm("Are you sure you want to delete this post?")) return;
+
+        const response = await fetch(`/api/posts/${postId}`, {
+            method: "DELETE"
+        });
+
+        if (response.ok) {
+            alert("Post deleted successfully.");
+            document.getElementById(`post-${postId}`).remove();
+        } else {
+            alert("Failed to delete the post.");
+        }
+    }
+</script>
