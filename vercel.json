@@ -25,10 +25,5 @@
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "functions": {
-    "api/*.cs": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
