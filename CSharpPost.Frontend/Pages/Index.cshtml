@@ -1,0 +1,1853 @@
+﻿@page
+@model IndexModel
+
+<div class="app-container">
+    <header class="app-header">
+        <div class="header-content">
+            <div class="brand-section">
+                <h1 class="brand-title">
+                    <span class="csharp">C#</span>Post
+                </h1>
+                <p class="brand-subtitle">A Modern C# Microblogging Platform</p>
+            </div>
+            <div class="header-controls">
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalPosts">0</span>
+                        <span class="stat-label">Posts</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalLikes">0</span>
+                        <span class="stat-label">Likes</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button onclick="exportPosts()" class="export-button">
+                        <span class="export-icon">📥</span>
+                        <span class="export-text">Export</span>
+                    </button>
+                    <div class="theme-toggle">
+                        <button onclick="toggleDarkMode()" class="theme-button" id="themeToggle">
+                            <span class="theme-icon">🌙</span>
+                            <span class="theme-text">Dark</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="content-grid">
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Analytics Dashboard</h3>
+                    <button onclick="loadAnalytics()" class="refresh-analytics-btn">Refresh</button>
+                    <div id="analyticsDashboard" class="analytics-dashboard">
+                        <p class="loading">Loading analytics...</p>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Notifications</h3>
+                    <div class="notification-header">
+                        <span class="notification-count" id="notificationCount">0</span>
+                        <button onclick="markAllNotificationsRead()" class="mark-read-btn">Mark all read</button>
+                    </div>
+                    <div id="notificationsList" class="notifications-list">
+                        <p class="loading">Loading notifications...</p>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Activity Feed</h3>
+                    <div id="activityFeed" class="activity-list">
+                        <p class="loading">Loading activity...</p>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Trending Hashtags</h3>
+                    <div id="trendingHashtags" class="trending-list">
+                        <p class="loading">Loading trending topics...</p>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Quick Stats</h3>
+                    <div id="quickStats" class="stats-list">
+                        <p class="loading">Loading stats...</p>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="timeline-section">
+
+    <div class="post-composer">
+                    <div class="composer-tabs">
+                        <button onclick="switchComposerTab('post')" class="composer-tab active" id="postTab">Post</button>
+                        <button onclick="switchComposerTab('draft')" class="composer-tab" id="draftTab">Drafts</button>
+                        <button onclick="switchComposerTab('schedule')" class="composer-tab" id="scheduleTab">Schedule</button>
+                    </div>
+                    
+                    <div class="composer-content" id="postComposer">
+                        <form method="post" class="post-form">
+                            <div class="composer-header">
+                                <span class="composer-title">What's on your mind?</span>
+                                <span class="character-count">
+                                    <span id="charCount">0</span>/140
+                                </span>
+                            </div>
+                            <textarea 
+                                name="text" 
+                                id="postText"
+                                placeholder="Share your thoughts with the C# community..."
+                                maxlength="140" 
+                                rows="4"
+                                oninput="updateCharCount()"
+                                required></textarea>
+                            <div class="composer-footer">
+                                <div class="composer-tips">
+                                    <span class="tip">Use #hashtags and @mentions</span>
+                                </div>
+                                <div class="composer-actions">
+                                    <button type="button" onclick="saveDraft()" class="draft-button">Save Draft</button>
+                                    <button type="submit" class="post-button">
+                                        <span>Post</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="composer-content hidden" id="draftComposer">
+                        <div class="drafts-list" id="draftsList">
+                            <p class="loading">Loading drafts...</p>
+                        </div>
+                    </div>
+
+                    <div class="composer-content hidden" id="scheduleComposer">
+                        <form onsubmit="schedulePost(event)" class="schedule-form">
+                            <div class="composer-header">
+                                <span class="composer-title">Schedule Post</span>
+                            </div>
+                            <textarea 
+                                id="scheduleText"
+                                placeholder="Write your post to schedule..."
+                                maxlength="140" 
+                                rows="4"
+                                required></textarea>
+                            <div class="schedule-controls">
+                                <label for="scheduleDateTime">Schedule for:</label>
+                                <input type="datetime-local" id="scheduleDateTime" required />
+                            </div>
+                            <div class="composer-footer">
+                                <button type="submit" class="schedule-button">Schedule Post</button>
+                            </div>
+                        </form>
+                        <div class="scheduled-list" id="scheduledList">
+                            <p class="loading">Loading scheduled posts...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-controls">
+                    <div class="search-section">
+                        <form method="get" class="search-form">
+                            <div class="search-container">
+                                <input 
+                                    type="text" 
+                                    name="search" 
+                                    placeholder="Search posts, hashtags, or mentions..." 
+                                    value="@Model.Search"
+                                    class="search-input" />
+                                <button type="submit" class="search-button">Search</button>
+                            </div>
+                        </form>
+                        <div class="search-filters">
+                            <select id="filterType" onchange="applyFilters()" class="filter-select">
+                                <option value="all">All Posts</option>
+                                <option value="withHashtags">With Hashtags</option>
+                                <option value="withMentions">With Mentions</option>
+                                <option value="popular">Popular Posts</option>
+                                <option value="recent">Recent Only</option>
+                            </select>
+                            <select id="dateFilter" onchange="applyFilters()" class="filter-select">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="sort-controls">
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy" onchange="changeSort()" class="sort-select">
+                            <option value="latest">Latest</option>
+                            <option value="popular">Most Popular</option>
+                            <option value="oldest">Oldest</option>
+                        </select>
+                    </div>
+                </div>
+
+    <div class="timeline">
+        @if (Model.Posts != null)
+        {
+            foreach (var post in Model.Posts)
+            {
+                <div class="post" id="post-@post.Id">
+                                <div class="post-header">
+                                    <div class="user-info">
+                                        <div class="user-avatar">
+                                            <span class="avatar-text">C#</span>
+                                        </div>
+                                        <div class="user-details">
+                                            <span class="username">@post.User.Username</span>
+                                            <span class="timestamp">@post.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                                            @if (post.IsEdited)
+                                            {
+                                                <span class="edited-indicator">• Edited</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="post-actions">
+                                        <button onclick="editPost(@post.Id)" class="action-button edit-button">Edit</button>
+                                        <button onclick="deletePost(@post.Id)" class="action-button delete-button">Delete</button>
+                                    </div>
+                                </div>
+                                <div class="post-content">
+                                    <p class="post-text">@post.Text</p>
+                                    @if (post.Hashtags?.Any() == true)
+                                    {
+                                        <div class="post-hashtags">
+                                            @foreach (var hashtag in post.Hashtags)
+                                            {
+                                                <span class="hashtag">#@hashtag</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                                <div class="post-footer">
+                                    <div class="post-stats">
+                                        <span class="stat">
+                                            <span class="stat-icon">❤️</span>
+                                            <span class="stat-value">@post.Likes</span>
+                                        </span>
+                                        <span class="stat">
+                                            <span class="stat-icon">📝</span>
+                                            <span class="stat-value">@post.Text.Length chars</span>
+                                        </span>
+                                    </div>
+                                    <div class="post-interactions">
+                                        <button onclick="likePost(@post.Id)" class="interaction-button like-button">
+                                            <span class="button-icon">❤️</span>
+                                            <span class="button-text">Like</span>
+                                        </button>
+                                        <button onclick="toggleBookmark(@post.Id)" class="interaction-button bookmark-button" id="bookmark-@post.Id">
+                                            <span class="button-icon">🔖</span>
+                                            <span class="button-text">Bookmark</span>
+                                        </button>
+                                        <button onclick="sharePost(@post.Id)" class="interaction-button share-button">
+                                            <span class="button-icon">📤</span>
+                                            <span class="button-text">Share</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+            }
+        }
+        else
+        {
+            <p>Loading posts...</p>
+        }
+    </div>
+
+    @if (Model.TotalPages > 1)
+                {
+                    <div class="pagination">
+                        @if (Model.CurrentPage > 1)
+                        {
+                            <a href="?page=@(Model.CurrentPage - 1)&search=@Model.Search" class="pagination-button prev">← Previous</a>
+                        }
+
+                        <div class="pagination-info">
+                            <span>Page @Model.CurrentPage of @Model.TotalPages</span>
+                        </div>
+
+                        @if (Model.CurrentPage < Model.TotalPages)
+                        {
+                            <a href="?page=@(Model.CurrentPage + 1)&search=@Model.Search" class="pagination-button next">Next →</a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+function updateCharCount() {
+    const textarea = document.getElementById('postText');
+    const charCount = document.getElementById('charCount');
+    charCount.textContent = textarea.value.length;
+    
+    if (textarea.value.length > 120) {
+        charCount.style.color = '#e74c3c';
+    } else {
+        charCount.style.color = '#68217a';
+    }
+}
+
+function likePost(postId) {
+    fetch(`/api/posts/${postId}/like`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            location.reload();
+        });
+}
+
+function deletePost(postId) {
+    if (confirm('Are you sure you want to delete this post?')) {
+        fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            });
+    }
+}
+
+function editPost(postId) {
+    const postElement = document.getElementById(`post-${postId}`);
+    const textElement = postElement.querySelector('.post-text');
+    const currentText = textElement.textContent.trim();
+    
+    const newText = prompt('Edit your post:', currentText);
+    if (newText && newText !== currentText && newText.length <= 140) {
+        fetch(`/api/posts/${postId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: newText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            location.reload();
+        });
+    }
+}
+
+function changeSort() {
+    const sortBy = document.getElementById('sortBy').value;
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('sortBy', sortBy);
+    window.location.href = currentUrl.toString();
+}
+
+function loadTrendingHashtags() {
+    fetch('/api/posts/hashtags')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('trendingHashtags');
+            if (data.length > 0) {
+                container.innerHTML = data.map(item => 
+                    `<div class="trending-item">
+                        <span class="hashtag-tag">#${item.hashtag}</span>
+                        <span class="hashtag-count">${item.count} posts</span>
+                    </div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<p class="no-data">No trending hashtags yet</p>';
+            }
+        });
+}
+
+function loadStats() {
+    fetch('/api/posts/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalPosts').textContent = data.totalPosts;
+            document.getElementById('totalLikes').textContent = data.totalLikes;
+            
+            const container = document.getElementById('quickStats');
+            container.innerHTML = `
+                <div class="stat-row">
+                    <span class="stat-label">Today's Posts:</span>
+                    <span class="stat-value">${data.postsToday}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Avg Likes:</span>
+                    <span class="stat-value">${data.averageLikes.toFixed(1)}</span>
+                </div>
+            `;
+        });
+}
+
+function loadNotifications() {
+    fetch('/api/posts/notifications?unreadOnly=false')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('notificationCount').textContent = data.unreadCount;
+            
+            const container = document.getElementById('notificationsList');
+            if (data.notifications.length > 0) {
+                container.innerHTML = data.notifications.map(notification => 
+                    `<div class="notification-item ${!notification.isRead ? 'unread' : ''}" onclick="markNotificationRead(${notification.id})">
+                        <div class="notification-content">
+                            <span class="notification-message">${notification.message}</span>
+                            <span class="notification-time">${formatTime(notification.timestamp)}</span>
+                        </div>
+                        ${!notification.isRead ? '<div class="notification-indicator"></div>' : ''}
+                    </div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<p class="no-data">No notifications</p>';
+            }
+        });
+}
+
+function loadActivityFeed() {
+    fetch('/api/posts/activities?limit=10')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('activityFeed');
+            if (data.length > 0) {
+                container.innerHTML = data.map(activity => {
+                    const icon = getActivityIcon(activity.type);
+                    return `<div class="activity-item">
+                        <span class="activity-icon">${icon}</span>
+                        <div class="activity-content">
+                            <span class="activity-description">${activity.description}</span>
+                            <span class="activity-time">${formatTime(activity.timestamp)}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                container.innerHTML = '<p class="no-data">No recent activity</p>';
+            }
+        });
+}
+
+function markNotificationRead(notificationId) {
+    fetch(`/api/posts/notifications/${notificationId}/read`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            loadNotifications();
+        });
+}
+
+function markAllNotificationsRead() {
+    fetch('/api/posts/notifications/read-all', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            loadNotifications();
+        });
+}
+
+function getActivityIcon(type) {
+    const icons = {
+        'post_created': '📝',
+        'post_liked': '❤️',
+        'post_edited': '✏️',
+        'post_deleted': '🗑️'
+    };
+    return icons[type] || '📌';
+}
+
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    return `${Math.floor(diffMins / 1440)}d ago`;
+}
+
+function toggleDarkMode() {
+    const body = document.body;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = themeToggle.querySelector('.theme-icon');
+    const themeText = themeToggle.querySelector('.theme-text');
+    
+    body.classList.toggle('dark-mode');
+    
+    if (body.classList.contains('dark-mode')) {
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light';
+        localStorage.setItem('darkMode', 'true');
+    } else {
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark';
+        localStorage.setItem('darkMode', 'false');
+    }
+}
+
+function switchComposerTab(tab) {
+    const tabs = ['post', 'draft', 'schedule'];
+    tabs.forEach(t => {
+        const tabBtn = document.getElementById(`${t}Tab`);
+        const composer = document.getElementById(`${t}Composer`);
+        
+        if (t === tab) {
+            tabBtn.classList.add('active');
+            composer.classList.remove('hidden');
+        } else {
+            tabBtn.classList.remove('active');
+            composer.classList.add('hidden');
+        }
+    });
+    
+    if (tab === 'draft') {
+        loadDrafts();
+    } else if (tab === 'schedule') {
+        loadScheduledPosts();
+    }
+}
+
+function saveDraft() {
+    const text = document.getElementById('postText').value.trim();
+    if (!text) return;
+    
+    fetch('/api/posts/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('postText').value = '';
+        updateCharCount();
+        alert('Draft saved successfully!');
+    });
+}
+
+function loadDrafts() {
+    fetch('/api/posts/drafts')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('draftsList');
+            if (data.length > 0) {
+                container.innerHTML = data.map(draft => 
+                    `<div class="draft-item">
+                        <div class="draft-content">
+                            <p class="draft-text">${draft.text}</p>
+                            <div class="draft-meta">
+                                <span class="draft-time">${formatTime(draft.updatedAt)}</span>
+                                <span class="draft-chars">${draft.characterCount} chars</span>
+                            </div>
+                        </div>
+                        <div class="draft-actions">
+                            <button onclick="publishDraft(${draft.id})" class="publish-btn">Publish</button>
+                            <button onclick="deleteDraft(${draft.id})" class="delete-btn">Delete</button>
+                        </div>
+                    </div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<p class="no-data">No drafts saved</p>';
+            }
+        });
+}
+
+function publishDraft(draftId) {
+    fetch(`/api/posts/publish-draft/${draftId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            loadDrafts();
+            location.reload();
+        });
+}
+
+function deleteDraft(draftId) {
+    if (confirm('Delete this draft?')) {
+        fetch(`/api/posts/drafts/${draftId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                loadDrafts();
+            });
+    }
+}
+
+function schedulePost(event) {
+    event.preventDefault();
+    const text = document.getElementById('scheduleText').value.trim();
+    const scheduledAt = document.getElementById('scheduleDateTime').value;
+    
+    if (!text || !scheduledAt) return;
+    
+    fetch('/api/posts/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            text: text,
+            scheduledAt: new Date(scheduledAt).toISOString()
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('scheduleText').value = '';
+        document.getElementById('scheduleDateTime').value = '';
+        loadScheduledPosts();
+        alert('Post scheduled successfully!');
+    });
+}
+
+function loadScheduledPosts() {
+    fetch('/api/posts/scheduled')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('scheduledList');
+            if (data.length > 0) {
+                container.innerHTML = '<h4>Scheduled Posts</h4>' + data.map(post => 
+                    `<div class="scheduled-item">
+                        <div class="scheduled-content">
+                            <p class="scheduled-text">${post.text}</p>
+                            <div class="scheduled-meta">
+                                <span class="scheduled-time">📅 ${new Date(post.scheduledAt).toLocaleString()}</span>
+                                <span class="scheduled-chars">${post.characterCount} chars</span>
+                            </div>
+                        </div>
+                        <button onclick="cancelScheduledPost(${post.id})" class="cancel-btn">Cancel</button>
+                    </div>`
+                ).join('');
+            } else {
+                container.innerHTML = '<p class="no-data">No scheduled posts</p>';
+            }
+        });
+}
+
+function cancelScheduledPost(postId) {
+    if (confirm('Cancel this scheduled post?')) {
+        fetch(`/api/posts/scheduled/${postId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                loadScheduledPosts();
+            });
+    }
+}
+
+function applyFilters() {
+    const filterType = document.getElementById('filterType').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const currentUrl = new URL(window.location);
+    
+    currentUrl.searchParams.set('filterType', filterType);
+    currentUrl.searchParams.set('dateFilter', dateFilter);
+    
+    window.location.href = currentUrl.toString();
+}
+
+function loadAnalytics() {
+    fetch('/api/posts/analytics')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('analyticsDashboard');
+            const overview = data.overview;
+            const trends = data.trends;
+            
+            container.innerHTML = `
+                <div class="analytics-overview">
+                    <div class="analytics-metric">
+                        <span class="metric-label">Total Posts</span>
+                        <span class="metric-value">${overview.totalPosts}</span>
+                    </div>
+                    <div class="analytics-metric">
+                        <span class="metric-label">Total Likes</span>
+                        <span class="metric-value">${overview.totalLikes}</span>
+                    </div>
+                    <div class="analytics-metric">
+                        <span class="metric-label">Engagement Rate</span>
+                        <span class="metric-value">${overview.engagementRate}</span>
+                    </div>
+                    <div class="analytics-metric">
+                        <span class="metric-label">Avg Length</span>
+                        <span class="metric-value">${overview.avgPostLength}</span>
+                    </div>
+                </div>
+                <div class="analytics-trends">
+                    <div class="trend-item">
+                        <span class="trend-label">Today:</span>
+                        <span class="trend-value">${trends.todayActivity} posts</span>
+                    </div>
+                    <div class="trend-item">
+                        <span class="trend-label">This Week:</span>
+                        <span class="trend-value">${trends.weeklyActivity} posts</span>
+                    </div>
+                    <div class="trend-item">
+                        <span class="trend-label">Growth:</span>
+                        <span class="trend-value ${trends.growthRate >= 0 ? 'positive' : 'negative'}">${trends.growthRate}%</span>
+                    </div>
+                </div>
+                <div class="analytics-usage">
+                    <div class="usage-item">
+                        <span class="usage-label">Hashtag Usage:</span>
+                        <span class="usage-value">${overview.hashtagUsageRate}%</span>
+                    </div>
+                    <div class="usage-item">
+                        <span class="usage-label">Mention Usage:</span>
+                        <span class="usage-value">${overview.mentionUsageRate}%</span>
+                    </div>
+                </div>
+            `;
+        });
+}
+
+function toggleBookmark(postId) {
+    fetch(`/api/posts/${postId}/is-bookmarked`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.isBookmarked) {
+                fetch(`/api/posts/${postId}/bookmark`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        const btn = document.getElementById(`bookmark-${postId}`);
+                        btn.querySelector('.button-text').textContent = 'Bookmark';
+                        btn.classList.remove('bookmarked');
+                    });
+            } else {
+                fetch(`/api/posts/${postId}/bookmark`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        const btn = document.getElementById(`bookmark-${postId}`);
+                        btn.querySelector('.button-text').textContent = 'Bookmarked';
+                        btn.classList.add('bookmarked');
+                    });
+            }
+        });
+}
+
+function sharePost(postId) {
+    const postElement = document.getElementById(`post-${postId}`);
+    const postText = postElement.querySelector('.post-text').textContent.trim();
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'CSharpPost',
+            text: postText,
+            url: window.location.href
+        });
+    } else {
+        const shareText = `${postText} - Shared from CSharpPost`;
+        navigator.clipboard.writeText(shareText).then(() => {
+            alert('Post copied to clipboard!');
+        });
+    }
+}
+
+function exportPosts() {
+    fetch('/api/posts')
+        .then(response => response.json())
+        .then(data => {
+            const posts = data.posts || data;
+            const exportData = JSON.stringify(posts, null, 2);
+            const blob = new Blob([exportData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `csharppost-export-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadTrendingHashtags();
+    loadStats();
+    loadNotifications();
+    loadActivityFeed();
+    loadAnalytics();
+    updateCharCount();
+    
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('.theme-icon');
+        const themeText = themeToggle.querySelector('.theme-text');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light';
+    }
+    
+    setInterval(() => {
+        loadNotifications();
+        loadActivityFeed();
+        loadAnalytics();
+    }, 30000);
+});
+</script>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    min-height: 100vh;
+    backdrop-filter: blur(10px);
+}
+
+.app-header {
+    background: linear-gradient(135deg, #68217a 0%, #8e44ad 100%);
+    color: white;
+    padding: 1.5rem 0;
+    box-shadow: 0 4px 20px rgba(104, 33, 122, 0.3);
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.export-button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.export-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.export-icon {
+    font-size: 1rem;
+}
+
+.export-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.theme-button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.theme-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.theme-icon {
+    font-size: 1rem;
+}
+
+.theme-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.composer-tabs {
+    display: flex;
+    border-bottom: 2px solid #e1e8ed;
+    margin-bottom: 1rem;
+}
+
+.composer-tab {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    color: #666;
+    font-weight: 500;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.composer-tab:hover {
+    color: #68217a;
+}
+
+.composer-tab.active {
+    color: #68217a;
+    border-bottom-color: #68217a;
+}
+
+.composer-content {
+    display: block;
+}
+
+.composer-content.hidden {
+    display: none;
+}
+
+.composer-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.draft-button {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.draft-button:hover {
+    background: #5a6268;
+}
+
+.schedule-controls {
+    margin: 1rem 0;
+}
+
+.schedule-controls label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.schedule-controls input[type="datetime-local"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.schedule-button {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.schedule-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.drafts-list, .scheduled-list {
+    margin-top: 1rem;
+}
+
+.draft-item, .scheduled-item {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    transition: all 0.2s;
+}
+
+.draft-item:hover, .scheduled-item:hover {
+    border-color: #68217a;
+    transform: translateY(-1px);
+}
+
+.draft-content, .scheduled-content {
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.draft-text, .scheduled-text {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.draft-meta, .scheduled-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.draft-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.publish-btn {
+    background: #68217a;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+}
+
+.publish-btn:hover {
+    background: #512e74;
+}
+
+.delete-btn, .cancel-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+}
+
+.delete-btn:hover, .cancel-btn:hover {
+    background: #c82333;
+}
+
+.search-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.search-filters {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-select {
+    padding: 0.5rem;
+    border: 2px solid #e1e8ed;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.dark-mode {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.dark-mode .app-container {
+    background: rgba(22, 33, 62, 0.95);
+}
+
+.dark-mode .app-header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+}
+
+.dark-mode .sidebar-section,
+.dark-mode .post-composer,
+.dark-mode .post,
+.dark-mode .draft-item,
+.dark-mode .scheduled-item {
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .post-form textarea,
+.dark-mode .search-input,
+.dark-mode .sort-select,
+.dark-mode .filter-select,
+.dark-mode .schedule-controls input[type="datetime-local"] {
+    background: #334155;
+    border-color: rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+}
+
+.dark-mode .post-form textarea:focus,
+.dark-mode .search-input:focus {
+    border-color: #68217a;
+}
+
+.dark-mode .username,
+.dark-mode .composer-title,
+.dark-mode .sidebar-section h3,
+.dark-mode .hashtag-tag {
+    color: #a78bfa;
+}
+
+.dark-mode .brand-title .csharp {
+    color: #fbbf24;
+}
+
+.dark-mode .post-text,
+.dark-mode .draft-text,
+.dark-mode .scheduled-text,
+.dark-mode .notification-message,
+.dark-mode .activity-description {
+    color: #e2e8f0;
+}
+
+.dark-mode .timestamp,
+.dark-mode .draft-time,
+.dark-mode .scheduled-time,
+.dark-mode .notification-time,
+.dark-mode .activity-time {
+    color: #94a3b8;
+}
+
+.dark-mode .composer-tips .tip,
+.dark-mode .stat-label,
+.dark-mode .hashtag-count {
+    color: #94a3b8;
+}
+
+.dark-mode .theme-button {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .theme-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .composer-tab {
+    color: #94a3b8;
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .composer-tab.active {
+    color: #a78bfa;
+    border-bottom-color: #a78bfa;
+}
+
+.dark-mode .notification-item,
+.dark-mode .activity-item {
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .notification-item.unread {
+    background: rgba(167, 139, 250, 0.1);
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+.brand-section .brand-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.brand-title .csharp {
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.brand-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+.stats-section {
+    display: flex;
+    gap: 2rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffd700;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.main-content {
+    padding: 2rem;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebar-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(104, 33, 122, 0.1);
+}
+
+.sidebar-section h3 {
+    color: #68217a;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.refresh-analytics-btn {
+    background: #68217a;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 0.75rem;
+}
+
+.refresh-analytics-btn:hover {
+    background: #512e74;
+}
+
+.analytics-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.analytics-overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.analytics-metric {
+    background: rgba(104, 33, 122, 0.05);
+    padding: 0.75rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+}
+
+.metric-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #68217a;
+}
+
+.analytics-trends {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.trend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e1e8ed;
+}
+
+.trend-label {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.trend-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #68217a;
+}
+
+.trend-value.positive {
+    color: #28a745;
+}
+
+.trend-value.negative {
+    color: #dc3545;
+}
+
+.analytics-usage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.usage-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e1e8ed;
+}
+
+.usage-label {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.usage-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #68217a;
+}
+
+.trending-list, .stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.trending-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(104, 33, 122, 0.05);
+    border-radius: 6px;
+}
+
+.hashtag-tag {
+    color: #68217a;
+    font-weight: 600;
+}
+
+.hashtag-count {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.notification-count {
+    background: #e74c3c;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mark-read-btn {
+    background: #68217a;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mark-read-btn:hover {
+    background: #512e74;
+}
+
+.notifications-list, .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e1e8ed;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.notification-item:hover {
+    border-color: #68217a;
+    transform: translateY(-1px);
+}
+
+.notification-item.unread {
+    background: rgba(104, 33, 122, 0.05);
+    border-color: rgba(104, 33, 122, 0.2);
+}
+
+.notification-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.notification-message {
+    font-size: 0.875rem;
+    color: #333;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.notification-indicator {
+    width: 8px;
+    height: 8px;
+    background: #e74c3c;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e1e8ed;
+    transition: all 0.2s;
+}
+
+.activity-item:hover {
+    border-color: #68217a;
+    transform: translateY(-1px);
+}
+
+.activity-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.activity-description {
+    font-size: 0.875rem;
+    color: #333;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.timeline-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.post-composer {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(104, 33, 122, 0.1);
+}
+
+.composer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.composer-title {
+    font-weight: 600;
+    color: #68217a;
+}
+
+.character-count {
+    font-size: 0.875rem;
+    color: #68217a;
+    font-weight: 600;
+}
+
+.post-form textarea {
+    width: 100%;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+.post-form textarea:focus {
+    outline: none;
+    border-color: #68217a;
+    box-shadow: 0 0 0 3px rgba(104, 33, 122, 0.1);
+}
+
+.composer-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.composer-tips .tip {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.post-button {
+    background: linear-gradient(135deg, #68217a 0%, #8e44ad 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.post-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(104, 33, 122, 0.3);
+}
+
+.timeline-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.search-form {
+    flex: 1;
+}
+
+.search-container {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #68217a;
+}
+
+.search-button {
+    background: #68217a;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-button:hover {
+    background: #512e74;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-select {
+    padding: 0.75rem;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.post {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(104, 33, 122, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.post:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #68217a 0%, #8e44ad 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.username {
+    font-weight: 600;
+    color: #68217a;
+}
+
+.timestamp {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.edited-indicator {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.post-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-button {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid #e1e8ed;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.edit-button:hover {
+    border-color: #68217a;
+    color: #68217a;
+}
+
+.delete-button:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.post-text {
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    word-wrap: break-word;
+}
+
+.post-hashtags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.hashtag {
+    background: rgba(104, 33, 122, 0.1);
+    color: #68217a;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e1e8ed;
+}
+
+.post-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.interaction-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid #e1e8ed;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.interaction-button:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.bookmark-button.bookmarked {
+    border-color: #68217a;
+    color: #68217a;
+    background: rgba(104, 33, 122, 0.1);
+}
+
+.bookmark-button.bookmarked:hover {
+    border-color: #512e74;
+    color: #512e74;
+}
+
+.share-button:hover {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem 0;
+}
+
+.pagination-button {
+    padding: 0.75rem 1.5rem;
+    background: #68217a;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.pagination-button:hover {
+    background: #512e74;
+}
+
+.pagination-info {
+    color: #666;
+}
+
+.loading, .no-data, .loading-posts {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .timeline-controls {
+        flex-direction: column;
+    }
+    
+    .search-container {
+        flex-direction: column;
+    }
+}
+
+    
